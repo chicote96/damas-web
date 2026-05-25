@@ -127,6 +127,15 @@
         }
         state.metas = state.metas || [];
         state.avances = state.avances || [];
+        state.avances.forEach(avance => {
+            if (!avance.fecha) return;
+            const range = weekRange(`${avance.fecha}T12:00:00`);
+            if (avance.fecha_inicio_semana !== range.start || avance.fecha_fin_semana !== range.end) {
+                avance.fecha_inicio_semana = range.start;
+                avance.fecha_fin_semana = range.end;
+                changed = true;
+            }
+        });
         state.notas = state.notas || [];
         state.mensajes = state.mensajes || [];
         state.pizarra_notas = state.pizarra_notas || [];

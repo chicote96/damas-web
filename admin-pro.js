@@ -381,16 +381,16 @@
         }
         try {
             const data = Object.fromEntries(new FormData(form).entries());
-            const week = DamasPro.activeWeek(state);
+            const advanceWeek = DamasPro.weekRange(`${data.fecha}T12:00:00`);
             const payload = { cobrador_id: data.cobrador_id, fecha: data.fecha, creditos_nuevos: Number(data.creditos_nuevos || 0), renovaciones: Number(data.renovaciones || 0), recaudo_dia: parseMoneyInput(data.recaudo_dia), observacion_admin_opcional: data.observacion.trim(), updated_at: new Date().toISOString() };
             if (data.id) {
                 const avance = state.avances.find(a => a.id === data.id);
                 if (!avance) return alert('No se encontro el avance para editar.');
-                payload.fecha_inicio_semana = avance.fecha_inicio_semana || DamasPro.weekRange(`${payload.fecha}T12:00:00`).start;
-                payload.fecha_fin_semana = avance.fecha_fin_semana || DamasPro.weekRange(`${payload.fecha}T12:00:00`).end;
+                payload.fecha_inicio_semana = advanceWeek.start;
+                payload.fecha_fin_semana = advanceWeek.end;
                 Object.assign(avance, payload);
             } else {
-                state.avances.push({ id: DamasPro.uid('av'), ...payload, fecha_inicio_semana: week.start, fecha_fin_semana: week.end, created_by: 'admin_mauricio', created_at: new Date().toISOString() });
+                state.avances.push({ id: DamasPro.uid('av'), ...payload, fecha_inicio_semana: advanceWeek.start, fecha_fin_semana: advanceWeek.end, created_by: 'admin_mauricio', created_at: new Date().toISOString() });
             }
             DamasPro.recomputeUnlocks(state);
             const saved = await DamasPro.save(state);
