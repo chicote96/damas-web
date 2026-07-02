@@ -1,4 +1,4 @@
-const fetch    = require('node-fetch');
+const fetch    = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const FormData = require('form-data');
 
 const PHONE = '573232083263@c.us'; // número que recibe la solicitud

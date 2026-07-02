@@ -49,10 +49,23 @@
         return weekRange(start);
     }
 
-    function activeWeek(state) {
+    function ensureActiveWeekCurrent(state) {
+        const today = weekRange();
         if (!state.semana_activa?.start || !state.semana_activa?.end) {
-            state.semana_activa = weekRange();
+            state.semana_activa = { start: today.start, end: today.end, status: 'abierta', opened_at: new Date().toISOString() };
+            return true;
         }
+        if (state.semana_activa.end < today.start) {
+            const previous = { start: state.semana_activa.start, end: state.semana_activa.end };
+            upsertWeeklyArchive(state, buildWeeklyArchive(state, previous, 'auto'));
+            state.semana_activa = { start: today.start, end: today.end, status: 'abierta', opened_at: new Date().toISOString(), previous_start: previous.start };
+            return true;
+        }
+        return false;
+    }
+
+    function activeWeek(state) {
+        ensureActiveWeekCurrent(state);
         return { start: state.semana_activa.start, end: state.semana_activa.end };
     }
 
@@ -140,11 +153,7 @@
         state.mensajes = state.mensajes || [];
         state.pizarra_notas = state.pizarra_notas || [];
         state.historial_semanal = state.historial_semanal || [];
-        if (!state.semana_activa?.start || !state.semana_activa?.end) {
-            const week = weekRange();
-            state.semana_activa = { start: week.start, end: week.end, status: 'abierta', opened_at: new Date().toISOString() };
-            changed = true;
-        }
+        if (ensureActiveWeekCurrent(state)) changed = true;
         state.premios = state.premios || [];
         state.premios.forEach(p => {
             if (p.valor_economico === undefined) {
@@ -563,7 +572,8 @@
         upsertWeeklyArchive(state, archive);
         const before = (state.avances || []).length;
         state.avances = (state.avances || []).filter(a => !avanceInWeek(a, week));
-        const next = nextWeekRange(week);
+        const calendarWeek = weekRange();
+        const next = week.end < calendarWeek.start ? calendarWeek : nextWeekRange(week);
         state.semana_activa = { start: next.start, end: next.end, status: 'abierta', opened_at: new Date().toISOString(), previous_start: week.start };
         save(state);
         return { removed: before - state.avances.length, archive };
