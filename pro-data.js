@@ -61,6 +61,11 @@
             state.semana_activa = { start: today.start, end: today.end, status: 'abierta', opened_at: new Date().toISOString(), previous_start: previous.start };
             return true;
         }
+        if (state.semana_activa.start > today.start) {
+            const previous = { start: state.semana_activa.start, end: state.semana_activa.end };
+            state.semana_activa = { start: today.start, end: today.end, status: 'abierta', opened_at: new Date().toISOString(), previous_start: previous.start };
+            return true;
+        }
         return false;
     }
 
@@ -572,8 +577,7 @@
         upsertWeeklyArchive(state, archive);
         const before = (state.avances || []).length;
         state.avances = (state.avances || []).filter(a => !avanceInWeek(a, week));
-        const calendarWeek = weekRange();
-        const next = week.end < calendarWeek.start ? calendarWeek : nextWeekRange(week);
+        const next = weekRange();
         state.semana_activa = { start: next.start, end: next.end, status: 'abierta', opened_at: new Date().toISOString(), previous_start: week.start };
         save(state);
         return { removed: before - state.avances.length, archive };
