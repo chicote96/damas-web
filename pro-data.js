@@ -55,12 +55,6 @@
             state.semana_activa = { start: today.start, end: today.end, status: 'abierta', opened_at: new Date().toISOString() };
             return true;
         }
-        if (state.semana_activa.end < today.start) {
-            const previous = { start: state.semana_activa.start, end: state.semana_activa.end };
-            upsertWeeklyArchive(state, buildWeeklyArchive(state, previous, 'auto'));
-            state.semana_activa = { start: today.start, end: today.end, status: 'abierta', opened_at: new Date().toISOString(), previous_start: previous.start };
-            return true;
-        }
         if (state.semana_activa.start > today.start) {
             const previous = { start: state.semana_activa.start, end: state.semana_activa.end };
             state.semana_activa = { start: today.start, end: today.end, status: 'abierta', opened_at: new Date().toISOString(), previous_start: previous.start };
