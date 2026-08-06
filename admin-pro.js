@@ -442,7 +442,9 @@
         sessionStorage.setItem('admin_avances_filter_date', new Date().toISOString().slice(0, 10));
         const next = DamasPro.activeWeek(state);
         alert(`Semana cerrada. Avances eliminados: ${result.removed}. Nueva semana activa: ${next.start} a ${next.end}.`);
-        renderView();
+        // Reload from the server-confirmed state. Replacing the full shared state
+        // in memory can leave existing view callbacks pointing at stale objects.
+        location.reload();
     }
 
     function clearAvanceForm() {
