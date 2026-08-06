@@ -17,7 +17,7 @@ export default async (request) => {
         const store = getStore(STORE_NAME);
 
         if (request.method === 'GET') {
-            const state = await store.get(STATE_KEY, { type: 'json' });
+            const state = await store.get(STATE_KEY, { type: 'json', consistency: 'strong' });
             return json({ state: state || null });
         }
 
@@ -27,8 +27,20 @@ export default async (request) => {
                 return json({ error: 'Estado invalido' }, 400);
             }
 
+            const current = await store.get(STATE_KEY, { type: 'json', consistency: 'strong' });
+            const currentRevision = Number(current?._sync?.revision || 0);
+            const expectedRevision = Number(body.expected_revision || 0);
+
+            // Reject a whole-state write made from an older tab/device. Without
+            // this check it can resurrect advances removed by a weekly close.
+            if (current && expectedRevision !== currentRevision) {
+                return json({ error: 'Estado desactualizado', revision: currentRevision }, 409);
+            }
+
+            const nextRevision = currentRevision + 1;
+            body.state._sync = { ...(body.state._sync || {}), revision: nextRevision };
             await store.setJSON(STATE_KEY, body.state);
-            return json({ ok: true });
+            return json({ ok: true, revision: nextRevision });
         }
 
         return json({ error: 'Method Not Allowed' }, 405);

@@ -7,6 +7,7 @@
     const CLIENT_KEY = 'damas_cobrador_pro_client_id';
     let lastSyncAt = '';
     let syncTimer = null;
+    let saveQueue = Promise.resolve(true);
 
     const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -214,10 +215,15 @@
     }
 
     function save(state) {
-        state._sync = { updated_at: new Date().toISOString(), client_id: clientId() };
+        state._sync = { ...(state._sync || {}), updated_at: new Date().toISOString(), client_id: clientId() };
         lastSyncAt = state._sync.updated_at;
         saveLocal(state);
-        return saveRemote(state);
+        // Serialize writes from this tab. Several workflows update awards and the
+        // main record back-to-back, and concurrent whole-state writes can arrive
+        // at the server out of order.
+        const pending = saveQueue.then(() => saveRemote(state));
+        saveQueue = pending.catch(() => false);
+        return pending;
     }
 
     async function loadRemote() {
@@ -236,10 +242,18 @@
             const res = await fetch(SYNC_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ state })
+                body: JSON.stringify({
+                    state,
+                    expected_revision: Number(state._sync?.revision || 0)
+                })
             });
             if (!res.ok) {
                 return false;
+            }
+            const data = await res.json();
+            if (data?.revision !== undefined) {
+                state._sync.revision = Number(data.revision);
+                saveLocal(state);
             }
             return true;
         } catch (_) {
@@ -571,9 +585,12 @@
         upsertWeeklyArchive(state, archive);
         const before = (state.avances || []).length;
         state.avances = (state.avances || []).filter(a => !avanceInWeek(a, week));
-        const next = weekRange();
+        const calendarWeek = weekRange();
+        const followingWeek = nextWeekRange(week);
+        // A delayed close catches up to the current calendar week, while an
+        // on-time or early close always advances exactly one week.
+        const next = followingWeek.start < calendarWeek.start ? calendarWeek : followingWeek;
         state.semana_activa = { start: next.start, end: next.end, status: 'abierta', opened_at: new Date().toISOString(), previous_start: week.start };
-        save(state);
         return { removed: before - state.avances.length, archive };
     }
 
