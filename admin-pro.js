@@ -1579,14 +1579,21 @@
     }
 
     async function render(adminName = 'Administrador') {
-        state = await DamasPro.load();
-        renderShell(adminName);
-        renderView();
-        DamasPro.startAutoSync((nextState) => {
-            state = nextState;
+        const app = $('admin-app');
+        if (app) app.innerHTML = '<div class="bg-white border border-brand-gray-dark rounded-xl p-6 text-brand-text">Cargando panel...</div>';
+        try {
+            state = await DamasPro.load();
             renderShell(adminName);
             renderView();
-        });
+            DamasPro.startAutoSync((nextState) => {
+                state = nextState;
+                renderShell(adminName);
+                renderView();
+            });
+        } catch (err) {
+            console.error('No se pudo iniciar el panel administrativo:', err);
+            if (app) app.innerHTML = `<div class="bg-white border border-red-200 rounded-xl p-6 text-brand-text"><h3 class="font-bold text-red-600 mb-2">No se pudo cargar el panel</h3><p class="text-sm">${h(err?.message || 'Error inesperado')}</p><button onclick="location.reload()" class="mt-4 bg-brand-blue text-white rounded-lg px-4 py-2 font-bold">Reintentar</button></div>`;
+        }
     }
 
     window.DamasAdmin = { render };
