@@ -23,6 +23,54 @@ export default async (request) => {
 
         if (request.method === 'POST') {
             const body = await request.json();
+
+            if (body.action === 'close_week') {
+                const current = await store.get(STATE_KEY, { type: 'json', consistency: 'strong' });
+                if (!current?.version) return json({ error: 'Estado no encontrado' }, 404);
+                const expected = body.expected_week;
+                const next = body.next_week;
+                const archive = body.archive;
+                if (!expected?.start || !expected?.end || !next?.start || !next?.end ||
+                    !archive?.id || archive.fecha_inicio_semana !== expected.start ||
+                    next.start <= expected.start) {
+                    return json({ error: 'Cierre semanal invalido' }, 400);
+                }
+
+                // Idempotent response if this week was already closed by another
+                // tab or a repeated click.
+                if (current.semana_activa?.start !== expected.start) {
+                    return json({ ok: true, already_closed: true, state: current });
+                }
+
+                current.historial_semanal = current.historial_semanal || [];
+                const archiveIndex = current.historial_semanal.findIndex(item => item.id === archive.id);
+                if (archiveIndex >= 0) current.historial_semanal[archiveIndex] = archive;
+                else current.historial_semanal.push(archive);
+                current.historial_semanal.sort((a, b) =>
+                    String(b.fecha_inicio_semana || '').localeCompare(String(a.fecha_inicio_semana || ''))
+                );
+                const isClosedWeekAdvance = avance => {
+                    if (avance.fecha_inicio_semana) return avance.fecha_inicio_semana === expected.start;
+                    return avance.fecha >= expected.start && avance.fecha <= expected.end;
+                };
+                current.avances = (current.avances || []).filter(avance => !isClosedWeekAdvance(avance));
+                current.semana_activa = {
+                    start: next.start,
+                    end: next.end,
+                    status: 'abierta',
+                    opened_at: new Date().toISOString(),
+                    previous_start: expected.start
+                };
+                const revision = Number(current._sync?.revision || 0) + 1;
+                current._sync = {
+                    updated_at: new Date().toISOString(),
+                    client_id: body.client_id || 'server',
+                    revision
+                };
+                await store.setJSON(STATE_KEY, current);
+                return json({ ok: true, revision, state: current });
+            }
+
             if (!body.state || !body.state.version) {
                 return json({ error: 'Estado invalido' }, 400);
             }
