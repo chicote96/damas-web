@@ -19,7 +19,7 @@
         let id = localStorage.getItem(CLIENT_KEY);
         if (!id) {
             id = uid('client');
-            localStorage.setItem(CLIENT_KEY, id);
+            try { localStorage.setItem(CLIENT_KEY, id); } catch (_) { /* Remote sync still works without persistence. */ }
         }
         return id;
     }
@@ -211,7 +211,22 @@
     }
 
     function saveLocal(state) {
-        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+        try {
+            localStorage.setItem(STORE_KEY, JSON.stringify(state));
+        } catch (err) {
+            // Base64 profile, award and achievement images can exceed the
+            // browser's small localStorage quota. Keep the complete state on the
+            // server and use an image-free local fallback instead.
+            try {
+                const compact = JSON.stringify(state, (key, value) =>
+                    typeof value === 'string' && value.startsWith('data:image/') ? '' : value
+                );
+                localStorage.removeItem(STORE_KEY);
+                localStorage.setItem(STORE_KEY, compact);
+            } catch (_) {
+                try { localStorage.removeItem(STORE_KEY); } catch (_) { /* Storage may be unavailable. */ }
+            }
+        }
     }
 
     function save(state) {
