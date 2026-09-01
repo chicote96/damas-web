@@ -272,7 +272,7 @@
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <p class="font-bold">${h(c.nombre || 'Cobrador')}</p>
-                    <p class="text-xs text-brand-text/40 mt-1">${h(m.fecha_inicio_semana || '-')} a ${h(m.fecha_fin_semana || '-')}</p>
+                    <p class="text-xs text-brand-text/40 mt-1">${h(DamasPro.date(m.fecha_inicio_semana))} a ${h(DamasPro.date(m.fecha_fin_semana))}</p>
                 </div>
                 <span class="text-xs rounded-full px-2 py-1 ${m.activa ? 'bg-brand-blue text-white' : 'bg-brand-gray text-brand-text/50'}">${m.activa ? 'Activa' : 'Inactiva'}</span>
             </div>
@@ -305,7 +305,7 @@
             <div class="grid lg:grid-cols-[360px_1fr] gap-5">
                 <form id="form-avance" class="bg-white border border-brand-gray-dark rounded-xl p-5 shadow-sm space-y-4">
                     <h3 id="avance-form-title" class="font-heading font-bold text-brand-text">Agregar avance diario</h3>
-                    <p class="text-xs text-brand-text/45">Semana activa: ${week.start} a ${week.end}. Los avances nuevos cuentan para esta semana hasta que la cierres.</p>
+                    <p class="text-xs text-brand-text/45">Semana activa: ${DamasPro.date(week.start)} a ${DamasPro.date(week.end)}. Los avances nuevos cuentan para esta semana hasta que la cierres.</p>
                     <input name="id" type="hidden">
                     ${fieldLabel('Cobrador', 'Selecciona a quien le vas a sumar este avance.', `<select name="cobrador_id" class="field-input">${options()}</select>`)}
                     ${fieldLabel('Fecha del avance', 'Dia exacto en que se hizo la gestion.', `<input name="fecha" class="field-input" type="date" value="${new Date().toISOString().slice(0,10)}" required>`)}
@@ -346,7 +346,7 @@
                         return `<div class="rounded-xl border border-brand-gray-dark p-3 text-sm">
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                                 <b>${h(c.nombre)}</b>
-                                <span class="text-xs font-bold text-brand-text/40">${h(a.fecha)}</span>
+                                <span class="text-xs font-bold text-brand-text/40">${h(DamasPro.date(a.fecha))}</span>
                             </div>
                             <div class="grid sm:grid-cols-3 gap-2 mt-3">
                                 ${avanceMetric('Creditos nuevos agregados', a.creditos_nuevos || 0)}
@@ -435,7 +435,7 @@
 
     async function resetWeeklyProgress() {
         const week = DamasPro.activeWeek(state);
-        if (!confirm(`Cerrar la semana activa (${week.start} a ${week.end}) y abrir la siguiente? Se archivara el resumen antes de borrar avances. Premios y logros ganados se conservan.`)) return;
+        if (!confirm(`Cerrar la semana activa (${DamasPro.date(week.start)} a ${DamasPro.date(week.end)}) y abrir la siguiente? Se archivara el resumen antes de borrar avances. Premios y logros ganados se conservan.`)) return;
         const stateBeforeClose = structuredClone(state);
         const result = DamasPro.resetWeeklyProgress(state);
         const saved = await DamasPro.persistWeeklyClosure(state, result);
@@ -445,7 +445,7 @@
         }
         sessionStorage.setItem('admin_avances_filter_date', new Date().toISOString().slice(0, 10));
         const next = DamasPro.activeWeek(state);
-        alert(`Semana cerrada. Avances eliminados: ${result.removed}. Nueva semana activa: ${next.start} a ${next.end}.`);
+        alert(`Semana cerrada. Avances eliminados: ${result.removed}. Nueva semana activa: ${DamasPro.date(next.start)} a ${DamasPro.date(next.end)}.`);
         renderView();
     }
 
@@ -674,7 +674,7 @@
                     <textarea name="mensaje" class="field-input resize-none" rows="5" placeholder="Escribe una nota para la pizarra" required></textarea>
                     <button class="w-full bg-brand-green text-white rounded-xl py-3 font-bold">Publicar en pizarra</button>
                     <button id="clear-pizarra" type="button" class="w-full border border-red-200 text-red-500 rounded-xl py-3 font-bold hover:bg-red-50">Limpiar pizarra semanal</button>
-                    <p class="text-xs text-brand-text/40">Semana actual: ${week.start} a ${week.end}</p>
+                    <p class="text-xs text-brand-text/40">Semana actual: ${DamasPro.date(week.start)} a ${DamasPro.date(week.end)}</p>
                 </form>
                 ${pizarraBoard(notes, true)}
             </div>`;
@@ -777,7 +777,7 @@
                         ${fieldLabel('Cobrador', `<select name="cobrador_id" class="field-input">${options()}</select>`)}
                         ${fieldLabel('Logro', `<select name="logro_id" class="field-input">${(state.logros || []).map(l => `<option value="${l.id}">${h(l.nombre)} (${h(l.nivel)})</option>`).join('')}</select>`)}
                         <button class="w-full bg-brand-green text-white rounded-xl py-3 font-bold">Otorgar logro</button>
-                        <p class="text-xs text-brand-text/40">Semana actual: ${week.start} a ${week.end}.</p>
+                        <p class="text-xs text-brand-text/40">Semana actual: ${DamasPro.date(week.start)} a ${DamasPro.date(week.end)}.</p>
                     </form>
                 </div>
                 <div class="space-y-5">
@@ -908,7 +908,7 @@
                 <td>${h(logro.nombre)}</td>
                 <td>${h(logro.nivel)}</td>
                 <td>${award.asignado_manualmente ? 'Manual' : 'Automatico'}</td>
-                <td>${h((award.fecha_desbloqueo || award.created_at || '').slice(0, 10) || '-')}</td>
+                <td>${h(DamasPro.date(award.fecha_desbloqueo || award.created_at))}</td>
                 <td class="text-right"><button data-logro-award="${award.id}" class="logro-revoke rounded-lg bg-red-50 text-red-500 px-3 py-1.5 text-xs font-bold">Quitar</button></td>
             </tr>`).join('')}</tbody>
         </table>`;
@@ -979,7 +979,7 @@
                         <button id="reset-awards" type="button" class="w-full border border-red-200 text-red-500 rounded-xl py-3 font-bold hover:bg-red-50">
                             Reiniciar premios y logros de esta semana
                         </button>
-                        <p class="text-xs text-brand-text/40">Semana actual: ${week.start} a ${week.end}. No borra premios creados ni historial de semanas anteriores.</p>
+                        <p class="text-xs text-brand-text/40">Semana actual: ${DamasPro.date(week.start)} a ${DamasPro.date(week.end)}. No borra premios creados ni historial de semanas anteriores.</p>
                     </form>
                     <form id="form-award-premio" class="bg-white border border-brand-gray-dark rounded-xl p-5 shadow-sm space-y-4">
                         <h3 class="font-heading font-bold text-brand-text">Otorgar premio manual</h3>
@@ -1121,7 +1121,7 @@
                 <td>${h(premio.nombre)}</td>
                 <td>${DamasPro.money(premio.valor_economico || 0)}</td>
                 <td>${award.asignado_manualmente ? 'Manual' : 'Automatico'}</td>
-                <td>${h((award.fecha_desbloqueo || award.created_at || '').slice(0, 10) || '-')}</td>
+                <td>${h(DamasPro.date(award.fecha_desbloqueo || award.created_at))}</td>
                 <td class="text-right"><button data-premio-award="${award.id}" class="premio-revoke rounded-lg bg-red-50 text-red-500 px-3 py-1.5 text-xs font-bold">Quitar</button></td>
             </tr>`).join('')}</tbody>
         </table>`;
@@ -1236,7 +1236,7 @@
                 <div class="min-w-0">
                     <b>${h(f.titulo || 'Frase')}</b>
                     <p class="text-brand-text/70 mt-1">${h(f.texto)}</p>
-                    <p class="text-xs text-brand-text/40 mt-2">${f.activa ? 'Activa' : 'Inactiva'} - ${h(f.fecha_inicio || '-')}</p>
+                    <p class="text-xs text-brand-text/40 mt-2">${f.activa ? 'Activa' : 'Inactiva'} - ${h(DamasPro.date(f.fecha_inicio))}</p>
                 </div>
                 <span class="shrink-0 text-xs rounded-full px-2 py-1 ${f.activa ? 'bg-brand-blue text-white' : 'bg-brand-gray text-brand-text/50'}">${f.activa ? 'En uso' : 'Guardada'}</span>
             </div>
@@ -1292,7 +1292,7 @@
                 <section class="bg-white border border-brand-gray-dark rounded-xl p-5 shadow-sm">
                     <h3 class="font-heading font-bold text-brand-text mb-2">Historico semanal</h3>
                     <p class="text-xs text-brand-text/45 mb-4">Semanas archivadas automaticamente y cortes guardados antes de reiniciar avances.</p>
-                    ${history.length ? fieldLabel('Semana', `<select id="historico-select" class="field-input">${history.map(item => `<option value="${h(item.id)}" ${selected?.id === item.id ? 'selected' : ''}>${h(item.fecha_inicio_semana)} a ${h(item.fecha_fin_semana)}</option>`).join('')}</select>`) : empty('Aun no hay semanas archivadas.')}
+                    ${history.length ? fieldLabel('Semana', `<select id="historico-select" class="field-input">${history.map(item => `<option value="${h(item.id)}" ${selected?.id === item.id ? 'selected' : ''}>${h(DamasPro.date(item.fecha_inicio_semana))} a ${h(DamasPro.date(item.fecha_fin_semana))}</option>`).join('')}</select>`) : empty('Aun no hay semanas archivadas.')}
                     ${selected ? `
                         <div class="grid grid-cols-2 gap-2 mt-5">
                             ${historicStat('Creditos', selected.total_creditos || 0)}
@@ -1308,7 +1308,7 @@
                         <section class="bg-white border border-brand-gray-dark rounded-xl p-5 shadow-sm overflow-x-auto">
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                                 <h3 class="font-heading font-bold text-brand-text">Resumen por cobrador</h3>
-                                <p class="text-xs text-brand-text/45">${h(selected.fecha_inicio_semana)} a ${h(selected.fecha_fin_semana)}</p>
+                                <p class="text-xs text-brand-text/45">${h(DamasPro.date(selected.fecha_inicio_semana))} a ${h(DamasPro.date(selected.fecha_fin_semana))}</p>
                             </div>
                             ${historicResumenTable(selected.resumen || [])}
                         </section>
@@ -1370,7 +1370,7 @@
                 return `<tr class="border-b last:border-0">
                     <td class="py-3">${h(row.nombre_cobrador || '-')}</td>
                     <td><b>${h(item.nombre || '-')}</b><p class="text-xs text-brand-text/40">${h(item.nivel || '')}</p></td>
-                    <td class="text-xs text-brand-text/50">${h(String(row.fecha_desbloqueo || '').slice(0, 10) || '-')}</td>
+                    <td class="text-xs text-brand-text/50">${h(DamasPro.date(row.fecha_desbloqueo))}</td>
                 </tr>`;
             }).join('')}</tbody>
         </table>`;

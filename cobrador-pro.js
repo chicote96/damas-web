@@ -544,7 +544,7 @@
                     <input name="titulo" class="field-input" placeholder="Titulo corto" required>
                     <textarea name="mensaje" class="field-input resize-none" rows="5" placeholder="Escribe una nota para todos" required></textarea>
                     <button class="w-full bg-brand-green text-white rounded-xl py-3 font-bold">Publicar nota</button>
-                    <p class="text-xs text-brand-text/40">Semana actual: ${week.start} a ${week.end}</p>
+                    <p class="text-xs text-brand-text/40">Semana actual: ${DamasPro.date(week.start)} a ${DamasPro.date(week.end)}</p>
                 </form>
                 ${pizarraBoard(notes)}
             </div>`;
@@ -654,7 +654,7 @@
                         <p class="text-sm text-brand-text/60">Creditos nuevos: <b>${r.meta.meta_creditos_nuevos || 0}</b></p>
                         <p class="text-sm text-brand-text/60">Renovaciones: <b>${r.meta.meta_renovaciones || 0}</b></p>
                         <p class="text-sm text-brand-text/60">Recaudo: <b>${DamasPro.money(r.meta.meta_recaudo || 0)}</b></p>
-                        <p class="text-xs text-brand-text/40 mt-3">${h(r.meta.fecha_inicio_semana || '-')} a ${h(r.meta.fecha_fin_semana || '-')}</p>
+                        <p class="text-xs text-brand-text/40 mt-3">${h(DamasPro.date(r.meta.fecha_inicio_semana))} a ${h(DamasPro.date(r.meta.fecha_fin_semana))}</p>
                     </section>
                 </section>
 

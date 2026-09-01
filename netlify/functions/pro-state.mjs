@@ -12,6 +12,20 @@ const json = (body, status = 200) =>
         }
     });
 
+const restoreImages = (value, images) => {
+    if (Array.isArray(value)) return value.map(item => restoreImages(item, images));
+    if (!value || typeof value !== 'object') return value;
+    if (Object.keys(value).length === 1 && Number.isInteger(value.__damas_image_ref)) {
+        const image = images[value.__damas_image_ref];
+        if (typeof image !== 'string' || !image.startsWith('data:image/')) {
+            throw new Error('Referencia de imagen invalida');
+        }
+        return image;
+    }
+    Object.keys(value).forEach(key => value[key] = restoreImages(value[key], images));
+    return value;
+};
+
 export default async (request) => {
     try {
         const store = getStore(STORE_NAME);
@@ -22,7 +36,10 @@ export default async (request) => {
         }
 
         if (request.method === 'POST') {
-            const body = await request.json();
+            const encodedBody = await request.json();
+            const images = Array.isArray(encodedBody.image_payloads) ? encodedBody.image_payloads : [];
+            delete encodedBody.image_payloads;
+            const body = restoreImages(encodedBody, images);
 
             if (body.action === 'close_week') {
                 const current = await store.get(STATE_KEY, { type: 'json', consistency: 'strong' });

@@ -257,7 +257,7 @@
             const res = await fetch(SYNC_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                body: stringifyRequest({
                     state,
                     expected_revision: Number(state._sync?.revision || 0)
                 })
@@ -276,6 +276,23 @@
         }
     }
 
+    function stringifyRequest(payload) {
+        const images = [];
+        const imageIndexes = new Map();
+        const compact = JSON.parse(JSON.stringify(payload, (_key, value) => {
+            if (typeof value !== 'string' || !value.startsWith('data:image/')) return value;
+            let index = imageIndexes.get(value);
+            if (index === undefined) {
+                index = images.length;
+                imageIndexes.set(value, index);
+                images.push(value);
+            }
+            return { __damas_image_ref: index };
+        }));
+        compact.image_payloads = images;
+        return JSON.stringify(compact);
+    }
+
     async function persistWeeklyClosure(state, result) {
         // The server performs the destructive part atomically against its latest
         // copy. Local storage is only updated after the server confirms it.
@@ -283,7 +300,7 @@
             const res = await fetch(SYNC_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                body: stringifyRequest({
                     action: 'close_week',
                     expected_week: result.closedWeek,
                     next_week: result.next,
@@ -678,6 +695,11 @@
         return Number(value || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
     }
 
+    function date(value) {
+        const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return match ? `${match[3]}/${match[2]}/${match[1]}` : (value || '-');
+    }
+
     function escapeHtml(value) {
         return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     }
@@ -703,7 +725,7 @@
     window.DamasPro = {
         load, save, uid, hashPin, verifyPin, weekRange, activeWeek, currentMeta, weeklyAvances, totals,
         pct, visualPct, resumenCobrador, estadoCumplimiento, metricValue, unlockForCobrador,
-        recomputeUnlocks, resetWeeklyAwards, resetWeeklyProgress, archivePastWeeks, activePhrase, displayName, initials, money, escapeHtml, validateImage, fileToDataUrl
+        recomputeUnlocks, resetWeeklyAwards, resetWeeklyProgress, archivePastWeeks, activePhrase, displayName, initials, money, date, escapeHtml, validateImage, fileToDataUrl
         , blockLogro, blockPremio, unblockLogro, unblockPremio
         , logroSnapshot, premioSnapshot, resolveLogroAward, resolvePremioAward, uniqueAwardItems
         , addMessage
