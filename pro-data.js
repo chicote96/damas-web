@@ -276,6 +276,34 @@
         }
     }
 
+    async function persistWeeklyClosure(state, result) {
+        // The server performs the destructive part atomically against its latest
+        // copy. Local storage is only updated after the server confirms it.
+        try {
+            const res = await fetch(SYNC_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'close_week',
+                    expected_week: result.closedWeek,
+                    next_week: result.next,
+                    archive: result.archive,
+                    client_id: clientId()
+                })
+            });
+            if (!res.ok) return false;
+            const data = await res.json();
+            if (!data?.state?.version) return false;
+            Object.keys(state).forEach(key => delete state[key]);
+            Object.assign(state, data.state);
+            lastSyncAt = state._sync?.updated_at || '';
+            saveLocal(state);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
     function startAutoSync(onUpdate, intervalMs = 5000) {
         if (syncTimer) clearInterval(syncTimer);
         syncTimer = setInterval(async () => {
@@ -606,7 +634,7 @@
         // on-time or early close always advances exactly one week.
         const next = followingWeek.start < calendarWeek.start ? calendarWeek : followingWeek;
         state.semana_activa = { start: next.start, end: next.end, status: 'abierta', opened_at: new Date().toISOString(), previous_start: week.start };
-        return { removed: before - state.avances.length, archive };
+        return { removed: before - state.avances.length, archive, closedWeek: week, next };
     }
 
     function blockLogro(state, award) {
@@ -679,6 +707,6 @@
         , blockLogro, blockPremio, unblockLogro, unblockPremio
         , logroSnapshot, premioSnapshot, resolveLogroAward, resolvePremioAward, uniqueAwardItems
         , addMessage
-        , startAutoSync
+        , startAutoSync, persistWeeklyClosure
     };
 })();

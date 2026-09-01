@@ -436,9 +436,13 @@
     async function resetWeeklyProgress() {
         const week = DamasPro.activeWeek(state);
         if (!confirm(`Cerrar la semana activa (${week.start} a ${week.end}) y abrir la siguiente? Se archivara el resumen antes de borrar avances. Premios y logros ganados se conservan.`)) return;
+        const stateBeforeClose = structuredClone(state);
         const result = DamasPro.resetWeeklyProgress(state);
-        const saved = await DamasPro.save(state);
-        if (!saved) return alert('El reinicio quedo guardado localmente, pero no se pudo sincronizar con el servidor. Revisa la conexion.');
+        const saved = await DamasPro.persistWeeklyClosure(state, result);
+        if (!saved) {
+            state = stateBeforeClose;
+            return alert('No se pudo cerrar la semana en el servidor. No se aplicaron cambios; revisa la conexion e intenta de nuevo.');
+        }
         sessionStorage.setItem('admin_avances_filter_date', new Date().toISOString().slice(0, 10));
         const next = DamasPro.activeWeek(state);
         alert(`Semana cerrada. Avances eliminados: ${result.removed}. Nueva semana activa: ${next.start} a ${next.end}.`);
