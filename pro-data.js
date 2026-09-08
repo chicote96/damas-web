@@ -430,6 +430,15 @@
     }
 
     function buildWeeklyArchive(state, range, archiveType = 'auto') {
+        // Preserve an immutable snapshot of the daily records before the active
+        // week is cleared. Older archives may not have this field.
+        const avances = (state.avances || [])
+            .filter(avance => avanceInWeek(avance, range))
+            .map(avance => ({
+                ...avance,
+                nombre_cobrador: displayName((state.cobradores || []).find(c => c.id === avance.cobrador_id))
+            }))
+            .sort((a, b) => String(a.fecha || '').localeCompare(String(b.fecha || '')) || String(a.created_at || '').localeCompare(String(b.created_at || '')));
         const resumen = (state.cobradores || []).map(c => {
             const meta = metaForDate(state, c.id, range.start);
             const total = totalsForRange(state, c.id, range);
@@ -483,6 +492,7 @@
             total_creditos: resumen.reduce((sum, r) => sum + Number(r.total.creditos || 0), 0),
             total_renovaciones: resumen.reduce((sum, r) => sum + Number(r.total.renovaciones || 0), 0),
             total_recaudo: resumen.reduce((sum, r) => sum + Number(r.total.recaudo || 0), 0),
+            avances,
             resumen,
             premios,
             logros
