@@ -1613,7 +1613,7 @@
         const app = $('admin-app');
         if (app) app.innerHTML = '<div class="bg-white border border-brand-gray-dark rounded-xl p-6 text-brand-text">Cargando panel...</div>';
         try {
-            state = await DamasPro.load();
+            state = await DamasPro.load({ requireRemote: true });
             renderShell(adminName);
             renderView();
             DamasPro.startAutoSync((nextState) => {
@@ -1629,7 +1629,5 @@
 
     window.DamasAdmin = { render };
 
-    if (sessionStorage.getItem('admin_auth') === '1') {
-        render();
-    }
+    // admin.html starts the panel once, after resolving the authenticated user.
 })();

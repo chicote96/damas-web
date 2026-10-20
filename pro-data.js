@@ -1,6 +1,7 @@
 (function () {
     const STORE_KEY = 'damas_cobrador_pro_state_v1';
     const SYNC_ENDPOINT = '/.netlify/functions/pro-state';
+    const LOAD_TIMEOUT_MS = 15000;
     const DATA_RESET_VERSION = 3;
     const MAX_IMAGE_SIZE = 1.5 * 1024 * 1024;
     const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -195,8 +196,10 @@
         return state;
     }
 
-    async function load() {
-        let state = await loadRemote();
+    async function load({ requireRemote = false } = {}) {
+        // Do not initialize or upload a cached/empty state when the server
+        // cannot be reached. It may already contain newer shared data.
+        let state = await loadRemote(requireRemote);
         if (!state) {
             try { state = JSON.parse(localStorage.getItem(STORE_KEY)); } catch { state = null; }
         }
@@ -241,14 +244,28 @@
         return pending;
     }
 
-    async function loadRemote() {
+    async function loadRemote(required = false) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), LOAD_TIMEOUT_MS);
         try {
-            const res = await fetch(SYNC_ENDPOINT, { cache: 'no-store' });
-            if (!res.ok) return null;
+            const res = await fetch(SYNC_ENDPOINT, { cache: 'no-store', signal: controller.signal });
+            if (!res.ok) throw new Error(`El servidor de datos respondio con un error (${res.status}).`);
             const data = await res.json();
+            if (!data || !Object.prototype.hasOwnProperty.call(data, 'state') ||
+                (data.state !== null && !data.state?.version)) {
+                throw new Error('El servidor devolvio una respuesta de datos invalida.');
+            }
             return data && data.state && data.state.version ? data.state : null;
-        } catch (_) {
+        } catch (err) {
+            if (required) {
+                if (controller.signal.aborted) {
+                    throw new Error('El servidor de datos no respondio en 15 segundos. Revisa tu conexion e intenta de nuevo.');
+                }
+                throw new Error(`No se pudieron obtener los datos del panel. ${err.message || 'Revisa tu conexion e intenta de nuevo.'}`);
+            }
             return null;
+        } finally {
+            clearTimeout(timeout);
         }
     }
 
