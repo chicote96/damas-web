@@ -1498,7 +1498,8 @@
             if (file && file.size) {
                 ruta1.profile_image_url = await DamasPro.fileToDataUrl(file);
             }
-            await DamasPro.save(state);
+            const saved = await DamasPro.save(state);
+            if (!saved) throw new Error('No se pudo guardar el perfil en el servidor. Intenta de nuevo; si el problema continua, recarga la pagina y vuelve a seleccionar la foto.');
             alert('Perfil guardado correctamente.');
             renderAdminProfile(ruta1.id);
         } catch (err) {

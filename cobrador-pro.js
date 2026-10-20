@@ -767,7 +767,8 @@
             }
             state.cobradores[idx] = next;
             cobrador = next;
-            await DamasPro.save(state);
+            const saved = await DamasPro.save(state);
+            if (!saved) throw new Error('No se pudo guardar el perfil en el servidor. Intenta de nuevo; si el problema continua, recarga la pagina y vuelve a seleccionar la foto.');
             $('header-name').textContent = `${DamasPro.displayName(cobrador)} - ${cobrador.username}`;
             alert('Perfil guardado correctamente.');
             renderPerfil();

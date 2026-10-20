@@ -103,6 +103,16 @@ export default async (request) => {
                 return json({ error: 'Estado desactualizado', revision: currentRevision }, 409);
             }
 
+            // Local storage may contain an image-free fallback after a quota
+            // error. An ordinary sync must not erase the server's profile photos.
+            // Profile forms support replacement, but not photo removal.
+            for (const profile of body.state.cobradores || []) {
+                if (!profile.profile_image_url) {
+                    const previous = (current?.cobradores || []).find(item => item.id === profile.id);
+                    if (previous?.profile_image_url) profile.profile_image_url = previous.profile_image_url;
+                }
+            }
+
             const nextRevision = currentRevision + 1;
             body.state._sync = { ...(body.state._sync || {}), revision: nextRevision };
             await store.setJSON(STATE_KEY, body.state);
